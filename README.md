@@ -1,11 +1,12 @@
 # SENG365 2022 Assignment 1 API server
 
 # Overview of how to work on the assignment
+
 1. You hackity hack...
 2. You test with Postman
 3. You commit your changes to your git repo on `eng-git.canterbury.ac.nz`.
 
-Remember that we will test your application by downloading it directly from the `master` branch  on eng-git.
+Remember that we will test your application by downloading it directly from the `master` branch on eng-git.
 So ensure that you have committed everything to your repo before the deadline.
 It may also pay to check that you can download and run your application with the following steps
 
@@ -19,10 +20,11 @@ It may also pay to check that you can download and run your application with the
 1. Use `npm install` to populate the `node_modules/` directory with up-to-date packages
 2. Create a file called `.env`, following the instructions in the section below
 3. Go to https://dbadmin.csse.canterbury.ac.nz and create a database with the name that you set in the `.env` file
-2. Run `npm run start` or `npm run debug` to start the server
-3. The server will be accessible on `localhost:4941`
+4. Run `npm run start` or `npm run debug` to start the server
+5. The server will be accessible on `localhost:4941`
 
 ### `.env` file
+
 Create a `.env` file in the root directory of this project including the following information (note that you will need to create the database first in phpMyAdmin):
 
 ```
@@ -33,6 +35,7 @@ SENG365_MYSQL_DATABASE={a database starting with your usercode then an underscor
 ```
 
 For example:
+
 ```
 SENG365_MYSQL_HOST=db2.csse.canterbury.ac.nz
 SENG365_MYSQL_USER=abc123
@@ -54,28 +57,28 @@ You should set up your application to store files in the `storage/photos` direct
 
 To enable autocomplete for database tables, columns, etc., you can connect WebStorm to the `db2` database by following the instructions at https://www.jetbrains.com/help/idea/connecting-to-a-database.html#connect-to-mysql-database. The details to enter are:
 
-* Host: `db2.csse.canterbury.ac.nz`
-* Port: `3306`
-* User: (your usercode)
-* Password: (your password)
-* Database: (your database, as in `.env`)
-
+- Host: `db2.csse.canterbury.ac.nz`
+- Port: `3306`
+- User: (your usercode)
+- Password: (your password)
+- Database: (your database, as in `.env`)
 
 ## Some notes about endpoint status codes
+
 The api spec provides several status codes that each endpoint can return. Apart from the 500 'Internal Server Error'
-each of these represents a flow that may be tested. Hopefully from the labs you have seen these status codes before and 
-have an understanding of what each represents. A brief overview is provided in the table below. 
+each of these represents a flow that may be tested. Hopefully from the labs you have seen these status codes before and
+have an understanding of what each represents. A brief overview is provided in the table below.
 
 | Status Code | Status Message | Description                                    | Example                                          |
-|:------------|----------------|------------------------------------------------|--------------------------------------------------|
+| :---------- | -------------- | ---------------------------------------------- | ------------------------------------------------ |
 | 200         | OK             | Request completed successfully                 | Successfully get auctions                        |
 | 201         | Created        | Resources created successfully                 | Successfully create auction                      |
 | 400         | Bad Request    | The request failed due to client error         | Creating an auction without a request body       |
 | 401         | Unauthorised   | The requested failed due invalid authorisation | Creating an auction without authorisation header |
 | 403         | Forbidden      | The request is refused by the server           | Deleting an auction after a bid has been placed  |
 
-
 ## Final notes
+
 The Postman collection provided is a subset of what you will be marked with so passing these tests should be your highest
-priority. If you find an inconsistency or issue with the reference server please reach out to Morgan English 
+priority. If you find an inconsistency or issue with the reference server please reach out to Morgan English
 `morgan.english@canterbury.ac.nz`.
