@@ -22,7 +22,6 @@ const register = async (userData: any[]): Promise<any> => {
       Logger.error(err.sql);
     }
   } catch (err) {
-    Logger.error(err.sql);
     throw err;
   }
 };
@@ -68,7 +67,6 @@ const removeToken = async (token: string): Promise<any> => {
 };
 
 const findUserIdByToken = async (token: string): Promise<any> => {
-  Logger.info("Looking up user ID");
   const query = "SELECT id FROM user WHERE auth_token = ?";
   try {
     const [result] = await getPool().query(query, token);
@@ -78,4 +76,74 @@ const findUserIdByToken = async (token: string): Promise<any> => {
     throw err;
   }
 };
-export { register, getHashedPass, addToken, removeToken, findUserIdByToken };
+
+const getOne = async (id: number): Promise<any> => {
+  Logger.info(`Getting user ${id} from the database`);
+  const conn = await getPool().getConnection();
+  const query =
+    "SELECT first_name, last_name, auth_token FROM user WHERE id = ?";
+  const [rows] = await conn.query(query, id);
+  conn.release();
+  return rows;
+};
+
+const getEmail = async (id: number): Promise<any> => {
+  Logger.info(`Getting email for user ${id} `);
+  const conn = await getPool().getConnection();
+  const query = "select email from user where id = ?";
+  const [rows] = await conn.query(query, id);
+  conn.release();
+  return rows;
+};
+
+const updateUser = async (newData: any, token: string): Promise<any> => {
+  Logger.info("Updating user info");
+  const query =
+    "UPDATE user set first_name = ?, last_name = ?, email = ?, password = ? WHERE auth_token = ?";
+
+  const [result] = await getPool().query(query, [
+    newData.firstName,
+    newData.lastName,
+    newData.email,
+    newData.password,
+    token,
+  ]);
+  return result;
+};
+
+const updateColumn = async (
+  field: string,
+  value: any,
+  token: string
+): Promise<any> => {
+  Logger.info("Updating user info");
+  const query = `UPDATE user set ${field} = ? WHERE auth_token = ?`;
+
+  const [result] = await getPool().query(query, [value, token]);
+  return result;
+};
+
+const tokenToHash = async (token: string): Promise<any> => {
+  Logger.info("Looking up hashed user password");
+  const query = "SELECT password FROM user WHERE auth_token = ?";
+  try {
+    const [[result]] = await getPool().query(query, token);
+    return result;
+  } catch (err) {
+    Logger.error(err);
+    throw err;
+  }
+};
+
+export {
+  register,
+  getHashedPass,
+  addToken,
+  removeToken,
+  findUserIdByToken,
+  getOne,
+  getEmail,
+  updateUser,
+  updateColumn,
+  tokenToHash,
+};
