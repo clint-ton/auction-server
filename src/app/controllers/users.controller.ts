@@ -133,9 +133,8 @@ const edit = async (req: Request, res: Response): Promise<void> => {
 
   const token = req.header("X-Authorization");
   const userId = await Users.findUserIdByToken(token);
-  Logger.info(userId[0].id);
 
-  if (userId[0].id !== parseInt(req.params.id, 10)) {
+  if (userId !== parseInt(req.params.id, 10)) {
     res.status(403).send("Forbidden");
     return;
   }

@@ -1,6 +1,6 @@
 import { Express } from "express";
 import { rootUrl } from "./base.routes";
-import loginRequired from "../middleware/loginRequired";
+import loginRequired from "../middleware/loginRequired.middleware";
 
 import * as users from "../controllers/users.controller";
 

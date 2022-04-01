@@ -70,7 +70,7 @@ const findUserIdByToken = async (token: string): Promise<any> => {
   const query = "SELECT id FROM user WHERE auth_token = ?";
   try {
     const [result] = await getPool().query(query, token);
-    return result;
+    return result[0].id;
   } catch (err) {
     Logger.error(err);
     throw err;
