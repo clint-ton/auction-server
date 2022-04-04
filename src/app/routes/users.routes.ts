@@ -14,4 +14,10 @@ module.exports = (app: Express) => {
     .route(usersUrl + "/:id")
     .get(loginRequired, users.getOneUser)
     .patch(loginRequired, users.edit);
+
+  app
+    .route(usersUrl + "/:id/image")
+    .get(users.getImage)
+    .put(loginRequired, users.uploadImage)
+    .delete(loginRequired, users.deleteImage);
 };

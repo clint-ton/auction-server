@@ -66,11 +66,11 @@ const removeToken = async (token: string): Promise<any> => {
   }
 };
 
-const findUserIdByToken = async (token: string): Promise<any> => {
+const findUserIdByToken = async (token: string): Promise<any[]> => {
   const query = "SELECT id FROM user WHERE auth_token = ?";
   try {
     const [result] = await getPool().query(query, token);
-    return result[0].id;
+    return result;
   } catch (err) {
     Logger.error(err);
     throw err;
@@ -135,6 +135,29 @@ const tokenToHash = async (token: string): Promise<any> => {
   }
 };
 
+const getImageName = async (id: number) => {
+  const [result] = await getPool().query(
+    "SELECT image_filename FROM user WHERE id = ?",
+    id
+  );
+
+  return result[0].image_filename;
+};
+
+const checkExists = async (id: number) => {
+  const [result] = await getPool().query("SELECT 1 FROM user WHERE id = ?", id);
+  return result.length > 0;
+};
+
+const getUserName = async (id: number) => {
+  const [result] = await getPool().query(
+    "SELECT first_name, last_name FROM user WHERE id = ?",
+    id
+  );
+
+  return [result[0].first_name, result[0].last_name];
+};
+
 export {
   register,
   getHashedPass,
@@ -146,4 +169,7 @@ export {
   updateUser,
   updateColumn,
   tokenToHash,
+  getImageName,
+  checkExists,
+  getUserName,
 };

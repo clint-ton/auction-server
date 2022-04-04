@@ -4,9 +4,9 @@ import * as Users from "../models/users.model";
 import bcrypt = require("bcrypt");
 import jwt = require("jsonwebtoken");
 import { loggers } from "winston";
+import fs = require("fs");
 
 const register = async (req: Request, res: Response): Promise<void> => {
-  // --------------------------------------------------------------------------
   Logger.http("POST create user with given info");
   if (
     !req.body.hasOwnProperty("firstName") ||
@@ -28,7 +28,6 @@ const register = async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  // --------------------------------------------------------------------------
   try {
     const hash = await bcrypt.hash(req.body.password, 10);
     const userData = [
@@ -43,7 +42,7 @@ const register = async (req: Request, res: Response): Promise<void> => {
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
       res.statusMessage = "Email already in use";
-      res.status(400).send();
+      res.status(403).send();
       return;
     }
     res.status(500).send("Internal Server Error");
@@ -132,10 +131,11 @@ const edit = async (req: Request, res: Response): Promise<void> => {
   Logger.http("PATCH user");
 
   const token = req.header("X-Authorization");
-  const userId = await Users.findUserIdByToken(token);
+  const results = await Users.findUserIdByToken(token);
+  const userId = results[0].id;
 
   if (userId !== parseInt(req.params.id, 10)) {
-    res.status(403).send("Forbidden");
+    res.status(403).send("Unauthorized");
     return;
   }
   if (req.body.hasOwnProperty("email")) {
@@ -200,4 +200,165 @@ const edit = async (req: Request, res: Response): Promise<void> => {
   res.status(200).send();
 };
 
-export { register, login, logout, getOneUser, edit };
+const getImage = async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.statusMessage = "Not Found";
+    res.status(404).send();
+    return;
+  }
+
+  const userExists = await Users.checkExists(id);
+  if (!userExists) {
+    res.statusMessage = "Not Found";
+    res.status(404).send();
+    return;
+  }
+  try {
+    const filename = await Users.getImageName(id);
+    fs.readFile("storage/images/" + filename, (err, data) => {
+      if (err) {
+        Logger.error(err);
+        res.statusMessage = "Internal Server Error";
+        res.status(500).send();
+        return;
+      }
+
+      const arr = filename.split(".");
+      const extension = arr.pop();
+
+      let mimeType;
+      switch (extension) {
+        case "jpg":
+          mimeType = "image/jpeg";
+          break;
+        case "jpeg":
+          mimeType = "image/jpeg";
+          break;
+        case "png":
+          mimeType = "image/png";
+          break;
+        case "gif":
+          mimeType = "image/gif";
+          break;
+      }
+      res.setHeader("Content-Type", mimeType);
+      res.status(200).send(data);
+    });
+  } catch (err) {
+    Logger.error(err);
+    res.statusMessage = "Internal Server Error";
+    res.status(500).send();
+  }
+};
+
+const uploadImage = async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.statusMessage = "Not Found";
+    res.status(404).send();
+    return;
+  }
+
+  const token = req.header("X-Authorization");
+  const results = await Users.findUserIdByToken(token);
+  const userId = results[0].id;
+
+  if (userId !== id) {
+    res.statusMessage = "Can only put image for yourself";
+    res.status(401).send();
+    return;
+  }
+
+  const currentImage = await Users.getImageName(id);
+  let successCode: number;
+  if (currentImage !== null) {
+    successCode = 200;
+    fs.unlink("storage/images/" + currentImage, (err) => {
+      if (err) {
+        Logger.error(err);
+        res.statusMessage = "Internal Server Error";
+        res.status(500).send();
+      }
+    });
+  } else {
+    successCode = 201;
+  }
+
+  let extension;
+  if (req.is("image/png")) {
+    extension = "png";
+  } else if (req.is("image/jpeg")) {
+    extension = "jpg";
+  } else if (req.is("image/gif")) {
+    extension = "gif";
+  } else {
+    res.status(400).send();
+    return;
+  }
+
+  const filename = `user_${id}.${extension}`;
+
+  fs.writeFile("storage/images/" + filename, req.body, (err) => {
+    if (err) {
+      res.statusMessage = "Internal Server Error";
+      res.status(500).send();
+    } else {
+      Users.updateColumn("image_filename", filename, token);
+      res.status(successCode).send();
+    }
+  });
+};
+
+const deleteImage = async (req: Request, res: Response): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.statusMessage = "Not Found";
+    res.status(404).send();
+    return;
+  }
+
+  const token = req.header("X-Authorization");
+  const results = await Users.findUserIdByToken(token);
+  const userId = results[0].id;
+
+  if (userId !== id) {
+    res.statusMessage = "Can only put image for yourself";
+    res.status(401).send();
+    return;
+  }
+
+  const currentImage = await Users.getImageName(id);
+  if (currentImage === null) {
+    res.status(200).send();
+    return;
+  }
+
+  fs.unlink("storage/images/" + currentImage, (err) => {
+    if (err) {
+      Logger.error(err);
+      res.statusMessage = "Internal Server Error";
+      res.status(500).send();
+    } else {
+      try {
+        Users.updateColumn("image_filename", null, token);
+        res.status(200).send();
+        return;
+      } catch (err) {
+        Logger.error(err);
+        res.statusMessage = "Internal Server Error";
+        res.status(500).send();
+      }
+    }
+  });
+};
+export {
+  register,
+  login,
+  logout,
+  getOneUser,
+  edit,
+  getImage,
+  uploadImage,
+  deleteImage,
+};
