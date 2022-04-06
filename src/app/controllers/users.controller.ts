@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Logger from "../../config/logger";
 import * as Users from "../models/users.model";
 import bcrypt = require("bcrypt");
+import {uid} from 'rand-token';
 import jwt = require("jsonwebtoken");
 import { loggers } from "winston";
 import fs = require("fs");
@@ -68,13 +69,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
 
       if (result) {
         try {
-          const token = jwt.sign(
-            { email: req.body.email },
-            process.env.JWT_KEY,
-            {
-              expiresIn: "2h",
-            }
-          );
+          const token = uid(64)
           Users.addToken(results.id, token);
           res.status(200).send({ userId: results.id, token });
         } catch (err) {

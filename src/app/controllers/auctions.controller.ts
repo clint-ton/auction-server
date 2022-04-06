@@ -436,32 +436,32 @@ const listBids = async (req: Request, res: Response): Promise<void> => {
 };
 
 const newBid = async (req: Request, res: Response): Promise<void> => {
-  const auctionId = parseInt(req.params.id, 10);
-  const auctionExists = await Auctions.checkExists(auctionId);
-  if (!auctionExists) {
-    res.statusMessage = "Not Found";
-    res.status(404).send();
-    return;
-  }
-
-  if (!req.body.hasOwnProperty("amount")) {
-    res.statusMessage = "No amount provided";
-    res.status(400).send();
-    return;
-  }
-
-  const amount = req.body.amount;
-  const currentBid = await Auctions.getHighestBid(auctionId);
-  if (amount <= currentBid) {
-    res.statusMessage = "New bid must be higher than current highest bid";
-    res.status(403).send();
-    return;
-  }
-
-  const results = await findUserIdByToken(req.header("X-Authorization"));
-  const sellerId = results[0].id;
-
   try {
+    const auctionId = parseInt(req.params.id, 10);
+    const auctionExists = await Auctions.checkExists(auctionId);
+    if (!auctionExists) {
+      res.statusMessage = "Not Found";
+      res.status(404).send();
+      return;
+    }
+
+    if (!req.body.hasOwnProperty("amount")) {
+      res.statusMessage = "No amount provided";
+      res.status(400).send();
+      return;
+    }
+
+    const amount = req.body.amount;
+    const currentBid = await Auctions.getHighestBid(auctionId);
+    if (amount <= currentBid) {
+      res.statusMessage = "New bid must be higher than current highest bid";
+      res.status(403).send();
+      return;
+    }
+
+    const results = await findUserIdByToken(req.header("X-Authorization"));
+    const sellerId = results[0].id;
+
     await Auctions.createBid(
       auctionId,
       sellerId,
@@ -529,63 +529,68 @@ const getImage = async (req: Request, res: Response): Promise<void> => {
 };
 
 const uploadImage = async (req: Request, res: Response): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) {
-    res.statusMessage = "Not Found";
-    res.status(404).send();
-    return;
-  }
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      res.statusMessage = "Not Found";
+      res.status(404).send();
+      return;
+    }
 
-  const token = req.header("X-Authorization");
-  const results = await findUserIdByToken(token);
-  const userId = results[0].id;
+    const token = req.header("X-Authorization");
+    const results = await findUserIdByToken(token);
+    const userId = results[0].id;
 
-  const sellerId = await Auctions.getSellerId(id);
+    const sellerId = await Auctions.getSellerId(id);
 
-  if (userId !== sellerId) {
-    res.statusMessage = "Must be the auction seller";
-    res.status(401).send();
-    return;
-  }
+    if (userId !== sellerId) {
+      res.statusMessage = "Must be the auction seller";
+      res.status(401).send();
+      return;
+    }
 
-  const currentImage = await Auctions.getImageName(id);
-  let successCode: number;
-  if (currentImage !== null) {
-    successCode = 200;
-    fs.unlink("storage/images/" + currentImage, (err) => {
+    const currentImage = await Auctions.getImageName(id);
+    let successCode: number;
+    if (currentImage !== null) {
+      successCode = 200;
+      fs.unlink("storage/images/" + currentImage, (err) => {
+        if (err) {
+          Logger.error(err);
+          res.statusMessage = "Internal Server Error";
+          res.status(500).send();
+        }
+      });
+    } else {
+      successCode = 201;
+    }
+
+    let extension;
+    if (req.is("image/png")) {
+      extension = "png";
+    } else if (req.is("image/jpeg")) {
+      extension = "jpg";
+    } else if (req.is("image/gif")) {
+      extension = "gif";
+    } else {
+      res.status(400).send();
+      return;
+    }
+
+    const filename = `auction_${id}.${extension}`;
+
+    fs.writeFile("storage/images/" + filename, req.body, (err) => {
       if (err) {
-        Logger.error(err);
         res.statusMessage = "Internal Server Error";
         res.status(500).send();
+      } else {
+        Auctions.updateColumn("image_filename", filename, id);
+        res.status(successCode).send();
       }
     });
-  } else {
-    successCode = 201;
+  } catch (err) {
+    res.statusMessage = "Internal Server Error";
+    res.status(500).send();
   }
-
-  let extension;
-  if (req.is("image/png")) {
-    extension = "png";
-  } else if (req.is("image/jpeg")) {
-    extension = "jpg";
-  } else if (req.is("image/gif")) {
-    extension = "gif";
-  } else {
-    res.status(400).send();
-    return;
-  }
-
-  const filename = `auction_${id}.${extension}`;
-
-  fs.writeFile("storage/images/" + filename, req.body, (err) => {
-    if (err) {
-      res.statusMessage = "Internal Server Error";
-      res.status(500).send();
-    } else {
-      Auctions.updateColumn("image_filename", filename, id);
-      res.status(successCode).send();
-    }
-  });
 };
 
 export {
